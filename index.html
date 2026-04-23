@@ -1,323 +1,436 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jogo de Acordes</title>
+  <title>Jogo Musical</title>
   <script src="https://unpkg.com/tone"></script>
 
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       background: linear-gradient(135deg, #1e1e2f, #2c2c54);
       color: white;
       text-align: center;
-      margin: 0;
       padding: 20px;
+    }
+
+    #timerBox {
+      background: #ff7675;
+      padding: 10px;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      width: fit-content;
+      margin: 10px auto;
+      box-shadow: 0 0 10px rgba(255, 118, 117, 0.7);
     }
 
     .card {
-      background: rgba(255,255,255,0.05);
-      padding: 20px;
-      border-radius: 16px;
-      width: 100%;
       max-width: 520px;
       margin: auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 16px;
     }
 
-    h1 { font-size: 24px; margin: 8px 0 16px; }
-
-    .row { display:flex; gap:10px; }
-
-    select, button {
-      margin: 8px 0;
+    button,
+    select {
+      width: 100%;
       padding: 14px;
+      margin: 8px 0;
       border: none;
       border-radius: 12px;
-      cursor: pointer;
       background: #6c5ce7;
       color: white;
       font-weight: bold;
       font-size: 16px;
-      width: 100%;
-      transition: 0.2s;
     }
 
-    select { background:#3b3b7a; }
-
-    button:hover { transform: scale(1.03); }
-
-    #opcoes button { width: 100%; }
-
-    #resultado { font-size: 18px; margin-top: 10px; min-height: 22px; }
+    #timer {
+      margin: 10px 0;
+      font-size: 18px;
+    }
 
     #telaFinal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-      display: none; align-items: center; justify-content: center; padding: 20px;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
     }
 
-    .final-card {
-      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-      padding: 25px; border-radius: 20px; width: 100%; max-width: 400px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-      animation: fadeIn 0.5s ease;
+    #perguntaBox {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 15px;
+      border-radius: 12px;
+      margin: 15px 0;
+      font-size: 18px;
+      line-height: 1.6;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.8); }
-      to { opacity: 1; transform: scale(1); }
+    .label {
+      opacity: 0.7;
+      font-size: 14px;
     }
 
-    @media (max-width: 480px) {
-      h1 { font-size: 20px; }
-      .card { padding: 15px; }
-      select, button { font-size: 15px; padding: 12px; }
+    .valor {
+      font-weight: bold;
+      font-size: 22px;
+      color: #a29bfe;
+    }
+
+    #timerBox {
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-<div class="card" id="jogo">
-  <h1>🎵 Jogo de Acordes</h1>
+  <div class="card" id="jogo">
 
-  <div class="row">
-    <select id="instrumento">
-      <option value="piano">Piano</option>
-      <option value="organ">Órgão</option>
-      <option value="pad">Pad</option>
-    </select>
+    <h1>🎵 Jogo Musical</h1>
+
+    <!-- MENU -->
+    <div id="menuInicial">
+      <select id="modo">
+        <option value="acorde">Modo Acordes</option>
+        <option value="grau">Modo Graus</option>
+      </select>
+
+      <select id="instrumento">
+        <option value="piano">Piano</option>
+        <option value="organ">Órgão</option>
+        <option value="pad">Pad</option>
+      </select>
+
+      <button onclick="iniciar()">▶ Começar</button>
+    </div>
+
+    <div id="areaJogo" style="display:none;">
+      <!-- JOGO -->
+      <p id="fase"></p>
+      <p id="score"></p>
+      <div id="timerBox">
+        ⏱ <span id="timer">3</span>
+      </div>
+
+      <button id="btnRepetir" onclick="repetir()">🔁 Repetir</button>
+
+      <div id="perguntaBox"></div>
+      <div id="opcoes"></div>
+      <p id="resultado"></p>
+
+      <button id="proxima" style="display:none" onclick="proximaFase()">➡ Próxima</button>
+    </div>
   </div>
 
-  <p id="fase"></p>
-  <p id="score"></p>
-
-  <button onclick="tocarSequencia()">▶ Ouvir acordes</button>
-  <button onclick="repetir()">🔁 Ouvir novamente</button>
-
-  <div id="opcoes"></div>
-  <p id="resultado"></p>
-
-  <button id="proxima" style="display:none" onclick="proximaFase()">➡ Próxima fase</button>
-</div>
-
-<div id="telaFinal">
-  <div class="final-card">
-    <h1>🏆 Parabéns!</h1>
-    <p id="finalScore"></p>
-    <p id="finalAcertos"></p>
-    <p id="finalErros"></p>
-    <button onclick="reiniciar()">🔄 Jogar novamente</button>
+  <!-- TELA FINAL -->
+  <div id="telaFinal">
+    <div class="card">
+      <h1>🏆 Resultado</h1>
+      <p id="finalScore"></p>
+      <button onclick="reiniciar()">🔄 Jogar novamente</button>
+    </div>
   </div>
-</div>
 
-<script>
-let synth;
-let timeouts = [];
-let fase = 1;
-let score = 0;
-let acertos = 0;
-let erros = 0;
-let respostaCorreta = [];
-let sequenciaAtual = [];
-let respondido = false;
-let tomAtual = "";
-let acordesDoTom = [];
+  <script>
+    let synth;
+    let timeouts = [];
+    let fase = 1, score = 0, acertos = 0, erros = 0;
+    let respostaCorreta = [];
+    let sequenciaAtual = [];
+    let timerInterval;
 
-const campos = {
-  C: ["C","Dm","Em","F","G","Am"],
-  D: ["D","Em","F#m","G","A","Bm"],
-  E: ["E","F#m","G#m","A","B","C#m"],
-  F: ["F","Gm","Am","Bb","C","Dm"],
-  G: ["G","Am","Bm","C","D","Em"],
-  A: ["A","Bm","C#m","D","E","F#m"]
-};
+    const graus = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
-function criarInstrumento(tipo) {
-  if (tipo === "piano") {
-    synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "sine" },
-      envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1 }
-    }).toDestination();
-  }
+    const camposAcordes = {
+      C: ["C", "Dm", "Em", "F", "G", "Am"],
+      D: ["D", "Em", "F#m", "G", "A", "Bm"],
+      G: ["G", "Am", "Bm", "C", "D", "Em"],
+      A: ["A", "Bm", "C#m", "D", "E", "F#m"]
+    };
 
-  if (tipo === "organ") {
-    synth = new Tone.PolySynth(Tone.AMSynth).toDestination();
-  }
+    const camposNotas = {
+      C: ["C", "D", "E", "F", "G", "A", "B"],
+      D: ["D", "E", "F#", "G", "A", "B", "C#"],
+      G: ["G", "A", "B", "C", "D", "E", "F#"],
+      A: ["A", "B", "C#", "D", "E", "F#", "G#"]
+    };
 
-  if (tipo === "pad") {
-    synth = new Tone.PolySynth(Tone.FMSynth).toDestination();
-  }
-}
+    function criarInstrumento(tipo) {
+      if (tipo === "piano") synth = new Tone.PolySynth(Tone.Synth).toDestination();
+      if (tipo === "organ") synth = new Tone.PolySynth(Tone.AMSynth).toDestination();
+      if (tipo === "pad") synth = new Tone.PolySynth(Tone.FMSynth).toDestination();
+    }
 
-function limparAudio() {
-  timeouts.forEach(t => clearTimeout(t));
-  timeouts = [];
-  if (synth) synth.releaseAll();
-}
+    function limparAudio() {
+      timeouts.forEach(t => clearTimeout(t));
+      timeouts = [];
+      if (synth) synth.releaseAll();
+    }
 
-function gerarAcorde(acorde) {
-  const mapa = {
-    "C": ["C4","E4","G4"],
-    "Dm": ["D4","F4","A4"],
-    "Em": ["E4","G4","B4"],
-    "F": ["F4","A4","C5"],
-    "G": ["G4","B4","D5"],
-    "Am": ["A4","C5","E5"],
-    "D": ["D4","F#4","A4"],
-    "F#m": ["F#4","A4","C#5"],
-    "A": ["A4","C#5","E5"],
-    "Bm": ["B4","D5","F#5"],
-    "E": ["E4","G#4","B4"],
-    "G#m": ["G#4","B4","D#5"],
-    "C#m": ["C#4","E4","G#4"],
-    "Bb": ["Bb3","D4","F4"],
-    "Gm": ["G3","Bb3","D4"]
-  };
-  return mapa[acorde];
-}
+    function gerarAcorde(ac) {
+      const map = {
+        "C": ["C4", "E4", "G4"], "Dm": ["D4", "F4", "A4"], "Em": ["E4", "G4", "B4"],
+        "F": ["F4", "A4", "C5"], "G": ["G4", "B4", "D5"], "Am": ["A4", "C5", "E5"],
+        "D": ["D4", "F#4", "A4"], "F#m": ["F#4", "A4", "C#5"], "A": ["A4", "C#5", "E5"],
+        "Bm": ["B4", "D5", "F#5"], "C#m": ["C#4", "E4", "G#4"], "E": ["E4", "G#4", "B4"]
+      };
+      return map[ac];
+    }
 
-function atualizarUI() {
-  document.getElementById("fase").innerText = `Fase: ${fase} / 5`;
-  document.getElementById("score").innerText = `Pontuação: ${score}`;
-}
+    function iniciar() {
+      const tipo = document.getElementById("instrumento").value;
+      criarInstrumento(tipo);
 
-window.tocarSequencia = function() {
-  Tone.start();
-  limparAudio();
+      document.getElementById("menuInicial").style.display = "none";
+      document.getElementById("areaJogo").style.display = "block";
 
-  const tipo = document.getElementById("instrumento").value;
-  criarInstrumento(tipo);
+      proximaPergunta();
+    }
 
-  respondido = false;
-  document.getElementById("resultado").innerText = "";
-  document.getElementById("proxima").style.display = "none";
+    function tocarSequencia(acordes) {
+      limparAudio();
+      sequenciaAtual = acordes;
 
-  const tons = Object.keys(campos);
-  tomAtual = tons[Math.floor(Math.random() * tons.length)];
-  acordesDoTom = campos[tomAtual];
+      acordes.forEach((ac, i) => {
+        const t = setTimeout(() => {
+          synth.triggerAttackRelease(gerarAcorde(ac), "2n");
+        }, i * 1200);
+        timeouts.push(t);
+      });
+    }
 
-  respostaCorreta = [];
-  sequenciaAtual = [];
+    function repetir() {
+      if (sequenciaAtual.length > 0) tocarSequencia(sequenciaAtual);
+    }
 
-  for (let i = 0; i < 4; i++) {
-    const acorde = acordesDoTom[Math.floor(Math.random() * acordesDoTom.length)];
-    respostaCorreta.push(acorde);
-    sequenciaAtual.push(acorde);
+    function iniciarTimer() {
+      let t = 5;
+      document.getElementById("timer").innerText = t;
 
-    const t = setTimeout(() => {
-      synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
-    }, i * 1500);
+      clearInterval(timerInterval);
 
-    timeouts.push(t);
-  }
+      timerInterval = setInterval(() => {
+        t--;
+        document.getElementById("timer").innerText = t;
 
-  gerarOpcoes();
-}
+        // 🔥 efeito visual quando está acabando
+        if (t === 1) {
+          document.getElementById("timerBox").style.background = "#d63031";
+        }
 
-window.repetir = function() {
-  limparAudio();
+        if (t <= 0) {
+          clearInterval(timerInterval);
+          verificar(null);
+        }
+      }, 1000);
+    }
 
-  sequenciaAtual.forEach((acorde, i) => {
-    const t = setTimeout(() => {
-      synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
-    }, i * 1500);
+    function proximaPergunta() {
+      document.getElementById("resultado").innerText = "";
+      document.getElementById("proxima").style.display = "none";
 
-    timeouts.push(t);
-  });
-}
+      const modo = document.getElementById("modo").value;
 
-function gerarOpcaoErrada() {
-  let opcao = [];
+      if (modo === "grau") {
+        document.getElementById("timerBox").style.display = "block";
+      } else {
+        document.getElementById("timerBox").style.display = "none";
+      }
 
-  for (let i = 0; i < 4; i++) {
-    opcao.push(acordesDoTom[Math.floor(Math.random() * acordesDoTom.length)]);
-  }
+      if (modo === "acorde") {
+        clearInterval(timerInterval);
+        document.getElementById("timer").innerText = "";
+        document.getElementById("btnRepetir").style.display = "block";
+        const tons = Object.keys(camposAcordes);
+        const tom = tons[Math.floor(Math.random() * tons.length)];
+        const acordes = camposAcordes[tom];
 
-  return opcao.join(" - ");
-}
+        respostaCorreta = [];
+        for (let i = 0; i < 4; i++) {
+          respostaCorreta.push(acordes[Math.floor(Math.random() * acordes.length)]);
+        }
 
-function gerarOpcoes() {
-  const div = document.getElementById("opcoes");
-  div.innerHTML = "";
+        tocarSequencia(respostaCorreta);
+        gerarOpcoesAcordes(acordes);
 
-  const opcoes = [
-    respostaCorreta.join(" - "),
-    gerarOpcaoErrada(),
-    gerarOpcaoErrada(),
-    gerarOpcaoErrada()
-  ];
+        document.getElementById("pergunta").innerText = "Ouça os acordes";
+        document.getElementById("timer").innerText = "";
+      }
+      else {
+        document.getElementById("btnRepetir").style.display = "none";
+        const tons = Object.keys(camposNotas);
+        const tom = tons[Math.floor(Math.random() * tons.length)];
+        const notas = camposNotas[tom];
 
-  opcoes.sort(() => Math.random() - 0.5);
+        const idx = Math.floor(Math.random() * 7);
+        const nota = notas[idx];
+        const grau = graus[idx];
 
-  opcoes.forEach(op => {
-    const btn = document.createElement("button");
-    btn.innerText = op;
-    btn.onclick = () => verificar(op);
-    div.appendChild(btn);
-  });
-}
+        if (Math.random() > 0.5) {
+          document.getElementById("perguntaBox").innerHTML = `
+            <div><span class="label">Tom</span><br><span class="valor">${tom}</span></div>
+            <div><span class="label">Nota</span><br><span class="valor">${nota}</span></div>
+          `;
+          respostaCorreta = grau;
+          gerarOpcoesGraus();
+        } else {
+          document.getElementById("perguntaBox").innerHTML = `
+            <div><span class="label">Tom</span><br><span class="valor">${tom}</span></div>
+            <div><span class="label">Grau</span><br><span class="valor">${grau}</span></div>
+          `;
+          respostaCorreta = nota;
+          gerarOpcoesNotas(notas);
+        }
 
-function verificar(resposta) {
-  if (respondido) return;
-  respondido = true;
+        iniciarTimer();
+      }
+    }
 
-  const correta = respostaCorreta.join(" - ");
+    function gerarOpcoesAcordes(acordes) {
+      const div = document.getElementById("opcoes");
+      div.innerHTML = "";
 
-  if (resposta === correta) {
-    document.getElementById("resultado").innerText = "✅ Acertou!";
-    score += 10;
-    acertos++;
-  } else {
-    document.getElementById("resultado").innerText = `❌ Errou!
-Resposta correta: ${correta}`;
-    erros++;
-  }
+      const correta = respostaCorreta.join(" - ");
+      let op = [correta];
 
-  document.getElementById("proxima").style.display = "inline-block";
-  atualizarUI();
-}
+      while (op.length < 4) {
+        let temp = [];
+        for (let i = 0; i < 4; i++) {
+          temp.push(acordes[Math.floor(Math.random() * acordes.length)]);
+        }
+        let txt = temp.join(" - ");
+        if (!op.includes(txt)) op.push(txt);
+      }
 
-window.proximaFase = function() {
-  limparAudio();
-  fase++;
+      op.sort(() => Math.random() - 0.5);
 
-  if (fase > 5) {
-    mostrarTelaFinal();
-    return;
-  }
+      op.forEach(o => {
+        let b = document.createElement("button");
+        b.innerText = o;
+        b.onclick = () => verificar(o);
+        div.appendChild(b);
+      });
+    }
 
-  tocarSequencia();
-  atualizarUI();
-}
+    function gerarOpcoesGraus() {
+      const div = document.getElementById("opcoes");
+      div.innerHTML = "";
+      let op = [respostaCorreta];
 
-function mostrarTelaFinal() {
-  document.getElementById("jogo").style.display = "none";
-  document.getElementById("telaFinal").style.display = "flex";
+      while (op.length < 4) {
+        let g = graus[Math.floor(Math.random() * 7)];
+        if (!op.includes(g)) op.push(g);
+      }
 
-  document.getElementById("finalScore").innerText = "Pontuação: " + score;
-  document.getElementById("finalAcertos").innerText = "Acertos: " + acertos;
-  document.getElementById("finalErros").innerText = "Erros: " + erros;
-}
+      op.sort(() => Math.random() - 0.5);
 
-function reiniciar() {
-  limparAudio();
+      op.forEach(o => {
+        let b = document.createElement("button");
+        b.innerText = o;
+        b.onclick = () => verificar(o);
+        div.appendChild(b);
+      });
+    }
 
-  fase = 1;
-  score = 0;
-  acertos = 0;
-  erros = 0;
+    function gerarOpcoesNotas(notas) {
+      const div = document.getElementById("opcoes");
+      div.innerHTML = "";
+      let op = [respostaCorreta];
 
-  document.getElementById("telaFinal").style.display = "none";
-  document.getElementById("jogo").style.display = "block";
+      while (op.length < 4) {
+        let n = notas[Math.floor(Math.random() * notas.length)];
+        if (!op.includes(n)) op.push(n);
+      }
 
-  atualizarUI();
-  tocarSequencia();
-}
+      op.sort(() => Math.random() - 0.5);
 
-atualizarUI();
-</script>
+      op.forEach(o => {
+        let b = document.createElement("button");
+        b.innerText = o;
+        b.onclick = () => verificar(o);
+        div.appendChild(b);
+      });
+    }
+
+    function verificar(resp) {
+      clearInterval(timerInterval);
+
+      let correta = Array.isArray(respostaCorreta)
+        ? respostaCorreta.join(" - ")
+        : respostaCorreta;
+
+      if (resp === correta) {
+        document.getElementById("resultado").innerText = "✅ Acertou";
+        score += 10; acertos++;
+      } else {
+        document.getElementById("resultado").innerText = `❌ Errou | Correto: ${correta}`;
+        erros++;
+      }
+
+      document.getElementById("proxima").style.display = "block";
+      atualizarUI();
+    }
+
+    function proximaFase() {
+      fase++;
+
+      if (fase > 5) {
+        mostrarTelaFinal();
+        return;
+      }
+
+      proximaPergunta();
+      atualizarUI();
+    }
+
+    function mostrarTelaFinal() {
+      document.getElementById("jogo").style.display = "none";
+      document.getElementById("telaFinal").style.display = "flex";
+
+      document.getElementById("finalScore").innerText =
+        `Score: ${score} | Acertos: ${acertos} | Erros: ${erros}`;
+    }
+
+    function reiniciar() {
+      fase = 1;
+      score = 0;
+      acertos = 0;
+      erros = 0;
+
+      limparAudio();
+      clearInterval(timerInterval);
+
+      document.getElementById("telaFinal").style.display = "none";
+      document.getElementById("jogo").style.display = "block";
+
+      // voltar telas
+      document.getElementById("menuInicial").style.display = "block";
+      document.getElementById("areaJogo").style.display = "none";
+
+      // limpar UI
+      document.getElementById("pergunta").innerText = "";
+      document.getElementById("opcoes").innerHTML = "";
+      document.getElementById("resultado").innerText = "";
+      document.getElementById("timer").innerText = "";
+      document.getElementById("proxima").style.display = "none";
+
+      atualizarUI();
+    }
+
+    function atualizarUI() {
+      document.getElementById("fase").innerText = "Fase: " + fase;
+      document.getElementById("score").innerText = "Score: " + score;
+    }
+
+    atualizarUI();
+  </script>
 
 </body>
+
 </html>
