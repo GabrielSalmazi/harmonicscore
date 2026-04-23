@@ -212,6 +212,7 @@
     function iniciarTimer() {
       let t = 5;
       document.getElementById("timer").innerText = t;
+      document.getElementById("timerBox").style.background = "#ff7675";
 
       clearInterval(timerInterval);
 
@@ -219,7 +220,6 @@
         t--;
         document.getElementById("timer").innerText = t;
 
-        // 🔥 efeito visual quando está acabando
         if (t === 1) {
           document.getElementById("timerBox").style.background = "#d63031";
         }
@@ -259,33 +259,39 @@
         tocarSequencia(respostaCorreta);
         gerarOpcoesAcordes(acordes);
 
-        document.getElementById("pergunta").innerText = "Ouça os acordes";
-        document.getElementById("timer").innerText = "";
+        document.getElementById("perguntaBox").innerHTML = `
+          <div><span class="label">Ouça os acordes</span></div>
+        `;
       }
       else {
         document.getElementById("btnRepetir").style.display = "none";
-        const tons = Object.keys(camposNotas);
-        const tom = tons[Math.floor(Math.random() * tons.length)];
-        const notas = camposNotas[tom];
 
-        const idx = Math.floor(Math.random() * 7);
-        const nota = notas[idx];
+        const tons = Object.keys(camposAcordes);
+        const tom = tons[Math.floor(Math.random() * tons.length)];
+        const acordes = camposAcordes[tom];
+
+        const idx = Math.floor(Math.random() * acordes.length);
+        const acorde = acordes[idx];
         const grau = graus[idx];
 
-        if (Math.random() > 0.5) {
+        const perguntarAcorde = Math.random() > 0.5;
+
+        if (perguntarAcorde) {
+          // MOSTRA ACORDE → RESPONDE GRAU
           document.getElementById("perguntaBox").innerHTML = `
             <div><span class="label">Tom</span><br><span class="valor">${tom}</span></div>
-            <div><span class="label">Nota</span><br><span class="valor">${nota}</span></div>
+            <div><span class="label">Acorde</span><br><span class="valor">${acorde}</span></div>
           `;
           respostaCorreta = grau;
           gerarOpcoesGraus();
         } else {
+          // MOSTRA GRAU → RESPONDE ACORDE
           document.getElementById("perguntaBox").innerHTML = `
             <div><span class="label">Tom</span><br><span class="valor">${tom}</span></div>
             <div><span class="label">Grau</span><br><span class="valor">${grau}</span></div>
           `;
-          respostaCorreta = nota;
-          gerarOpcoesNotas(notas);
+          respostaCorreta = acorde;
+          gerarOpcoesAcordesSimples(acordes); // ✅ agora essa função existe
         }
 
         iniciarTimer();
@@ -318,13 +324,35 @@
       });
     }
 
+    // ✅ FUNÇÃO CORRIGIDA — gera opções de acordes simples (não sequência)
+    function gerarOpcoesAcordesSimples(acordes) {
+      const div = document.getElementById("opcoes");
+      div.innerHTML = "";
+
+      let op = [respostaCorreta];
+
+      while (op.length < 4) {
+        let ac = acordes[Math.floor(Math.random() * acordes.length)];
+        if (!op.includes(ac)) op.push(ac);
+      }
+
+      op.sort(() => Math.random() - 0.5);
+
+      op.forEach(o => {
+        let b = document.createElement("button");
+        b.innerText = o;
+        b.onclick = () => verificar(o);
+        div.appendChild(b);
+      });
+    }
+
     function gerarOpcoesGraus() {
       const div = document.getElementById("opcoes");
       div.innerHTML = "";
       let op = [respostaCorreta];
 
       while (op.length < 4) {
-        let g = graus[Math.floor(Math.random() * 7)];
+        let g = graus[Math.floor(Math.random() * graus.length)];
         if (!op.includes(g)) op.push(g);
       }
 
@@ -409,12 +437,10 @@
       document.getElementById("telaFinal").style.display = "none";
       document.getElementById("jogo").style.display = "block";
 
-      // voltar telas
       document.getElementById("menuInicial").style.display = "block";
       document.getElementById("areaJogo").style.display = "none";
 
-      // limpar UI
-      document.getElementById("pergunta").innerText = "";
+      document.getElementById("perguntaBox").innerHTML = "";
       document.getElementById("opcoes").innerHTML = "";
       document.getElementById("resultado").innerText = "";
       document.getElementById("timer").innerText = "";
