@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,20 +17,20 @@
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255,255,255,0.05);
       padding: 20px;
       border-radius: 16px;
       width: 100%;
-      max-width: 500px;
+      max-width: 520px;
       margin: auto;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
 
-    h1 {
-      font-size: 24px;
-    }
+    h1 { font-size: 24px; margin: 8px 0 16px; }
 
-    button {
+    .row { display:flex; gap:10px; }
+
+    select, button {
       margin: 8px 0;
       padding: 14px;
       border: none;
@@ -45,266 +44,280 @@
       transition: 0.2s;
     }
 
-    button:hover {
-      transform: scale(1.03);
-    }
+    select { background:#3b3b7a; }
 
-    #opcoes button {
-      width: 100%;
-    }
+    button:hover { transform: scale(1.03); }
 
-    #resultado {
-      font-size: 18px;
-      margin-top: 10px;
-    }
+    #opcoes button { width: 100%; }
 
-    /* Tela final */
+    #resultado { font-size: 18px; margin-top: 10px; min-height: 22px; }
+
     #telaFinal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.95);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+      display: none; align-items: center; justify-content: center; padding: 20px;
     }
 
     .final-card {
       background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-      padding: 25px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      padding: 25px; border-radius: 20px; width: 100%; max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
       animation: fadeIn 0.5s ease;
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.8);
-      }
-
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
 
-    /* Responsividade extra */
     @media (max-width: 480px) {
-      h1 {
-        font-size: 20px;
-      }
-
-      .card {
-        padding: 15px;
-      }
-
-      button {
-        font-size: 15px;
-        padding: 12px;
-      }
+      h1 { font-size: 20px; }
+      .card { padding: 15px; }
+      select, button { font-size: 15px; padding: 12px; }
     }
   </style>
 </head>
 
 <body>
 
-  <div class="card" id="jogo">
-    <h1>🎵 Jogo de Acordes</h1>
-    <p id="fase"></p>
-    <p id="score"></p>
+<div class="card" id="jogo">
+  <h1>🎵 Jogo de Acordes</h1>
 
-    <button onclick="tocarSequencia()">▶ Ouvir acordes</button>
-    <button onclick="repetir()">🔁 Ouvir novamente</button>
-
-    <div id="opcoes"></div>
-    <p id="resultado"></p>
-
-    <button id="proxima" style="display:none" onclick="proximaFase()">
-      ➡ Próxima fase
-    </button>
+  <div class="row">
+    <select id="instrumento">
+      <option value="piano">Piano</option>
+      <option value="organ">Órgão</option>
+      <option value="pad">Pad</option>
+    </select>
   </div>
 
-  <div id="telaFinal">
-    <div class="final-card">
-      <h1>🏆 Parabéns!</h1>
-      <p id="finalScore"></p>
-      <p id="finalAcertos"></p>
-      <p id="finalErros"></p>
-      <button onclick="reiniciar()">🔄 Jogar novamente</button>
-    </div>
+  <p id="fase"></p>
+  <p id="score"></p>
+
+  <button onclick="tocarSequencia()">▶ Ouvir acordes</button>
+  <button onclick="repetir()">🔁 Ouvir novamente</button>
+
+  <div id="opcoes"></div>
+  <p id="resultado"></p>
+
+  <button id="proxima" style="display:none" onclick="proximaFase()">➡ Próxima fase</button>
+</div>
+
+<div id="telaFinal">
+  <div class="final-card">
+    <h1>🏆 Parabéns!</h1>
+    <p id="finalScore"></p>
+    <p id="finalAcertos"></p>
+    <p id="finalErros"></p>
+    <button onclick="reiniciar()">🔄 Jogar novamente</button>
   </div>
+</div>
 
-  <script>
-    const synth = new Tone.PolySynth().toDestination();
+<script>
+let synth;
+let timeouts = [];
+let fase = 1;
+let score = 0;
+let acertos = 0;
+let erros = 0;
+let respostaCorreta = [];
+let sequenciaAtual = [];
+let respondido = false;
+let tomAtual = "";
+let acordesDoTom = [];
 
-    let timeouts = [];
-    let fase = 1;
-    let score = 0;
-    let acertos = 0;
-    let erros = 0;
-    let respostaCorreta = [];
-    let sequenciaAtual = [];
-    let respondido = false;
+const campos = {
+  C: ["C","Dm","Em","F","G","Am"],
+  D: ["D","Em","F#m","G","A","Bm"],
+  E: ["E","F#m","G#m","A","B","C#m"],
+  F: ["F","Gm","Am","Bb","C","Dm"],
+  G: ["G","Am","Bm","C","D","Em"],
+  A: ["A","Bm","C#m","D","E","F#m"]
+};
 
-    const campos = {
-      C: ["C", "Dm", "Em", "F", "G", "Am"],
-      D: ["D", "Em", "F#m", "G", "A", "Bm"],
-      G: ["G", "Am", "Bm", "C", "D", "Em"]
-    };
+function criarInstrumento(tipo) {
+  if (tipo === "piano") {
+    synth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "sine" },
+      envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 1 }
+    }).toDestination();
+  }
 
-    function limparAudio() {
-      timeouts.forEach(t => clearTimeout(t));
-      timeouts = [];
-      synth.releaseAll();
-    }
+  if (tipo === "organ") {
+    synth = new Tone.PolySynth(Tone.AMSynth).toDestination();
+  }
 
-    function gerarAcorde(acorde) {
-      const mapa = {
-        "C": ["C4", "E4", "G4"],
-        "Dm": ["D4", "F4", "A4"],
-        "Em": ["E4", "G4", "B4"],
-        "F": ["F4", "A4", "C5"],
-        "G": ["G4", "B4", "D5"],
-        "Am": ["A4", "C5", "E5"],
-        "D": ["D4", "F#4", "A4"],
-        "F#m": ["F#4", "A4", "C#5"],
-        "A": ["A4", "C#5", "E5"],
-        "Bm": ["B4", "D5", "F#5"]
-      };
-      return mapa[acorde];
-    }
+  if (tipo === "pad") {
+    synth = new Tone.PolySynth(Tone.FMSynth).toDestination();
+  }
+}
 
-    function atualizarUI() {
-      document.getElementById("fase").innerText = "Fase: " + fase + " / 5";
-      document.getElementById("score").innerText = "Pontuação: " + score;
-    }
+function limparAudio() {
+  timeouts.forEach(t => clearTimeout(t));
+  timeouts = [];
+  if (synth) synth.releaseAll();
+}
 
-    window.tocarSequencia = function () {
-      Tone.start();
-      limparAudio();
+function gerarAcorde(acorde) {
+  const mapa = {
+    "C": ["C4","E4","G4"],
+    "Dm": ["D4","F4","A4"],
+    "Em": ["E4","G4","B4"],
+    "F": ["F4","A4","C5"],
+    "G": ["G4","B4","D5"],
+    "Am": ["A4","C5","E5"],
+    "D": ["D4","F#4","A4"],
+    "F#m": ["F#4","A4","C#5"],
+    "A": ["A4","C#5","E5"],
+    "Bm": ["B4","D5","F#5"],
+    "E": ["E4","G#4","B4"],
+    "G#m": ["G#4","B4","D#5"],
+    "C#m": ["C#4","E4","G#4"],
+    "Bb": ["Bb3","D4","F4"],
+    "Gm": ["G3","Bb3","D4"]
+  };
+  return mapa[acorde];
+}
 
-      respondido = false;
-      document.getElementById("resultado").innerText = "";
-      document.getElementById("proxima").style.display = "none";
+function atualizarUI() {
+  document.getElementById("fase").innerText = `Fase: ${fase} / 5`;
+  document.getElementById("score").innerText = `Pontuação: ${score}`;
+}
 
-      const tons = Object.keys(campos);
-      const tom = tons[Math.floor(Math.random() * tons.length)];
-      const acordes = campos[tom];
+window.tocarSequencia = function() {
+  Tone.start();
+  limparAudio();
 
-      respostaCorreta = [];
-      sequenciaAtual = [];
+  const tipo = document.getElementById("instrumento").value;
+  criarInstrumento(tipo);
 
-      for (let i = 0; i < 4; i++) {
-        const acorde = acordes[Math.floor(Math.random() * acordes.length)];
-        respostaCorreta.push(acorde);
-        sequenciaAtual.push(acorde);
+  respondido = false;
+  document.getElementById("resultado").innerText = "";
+  document.getElementById("proxima").style.display = "none";
 
-        const t = setTimeout(() => {
-          synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
-        }, i * 1500);
+  const tons = Object.keys(campos);
+  tomAtual = tons[Math.floor(Math.random() * tons.length)];
+  acordesDoTom = campos[tomAtual];
 
-        timeouts.push(t);
-      }
+  respostaCorreta = [];
+  sequenciaAtual = [];
 
-      gerarOpcoes();
-    }
+  for (let i = 0; i < 4; i++) {
+    const acorde = acordesDoTom[Math.floor(Math.random() * acordesDoTom.length)];
+    respostaCorreta.push(acorde);
+    sequenciaAtual.push(acorde);
 
-    window.repetir = function () {
-      limparAudio();
+    const t = setTimeout(() => {
+      synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
+    }, i * 1500);
 
-      sequenciaAtual.forEach((acorde, i) => {
-        const t = setTimeout(() => {
-          synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
-        }, i * 1500);
+    timeouts.push(t);
+  }
 
-        timeouts.push(t);
-      });
-    }
+  gerarOpcoes();
+}
 
-    function gerarOpcoes() {
-      const div = document.getElementById("opcoes");
-      div.innerHTML = "";
+window.repetir = function() {
+  limparAudio();
 
-      const opcoes = [
-        respostaCorreta.join(" - "),
-        "C - F - G - Am",
-        "Dm - G - C - Em",
-        "Am - F - C - G"
-      ];
+  sequenciaAtual.forEach((acorde, i) => {
+    const t = setTimeout(() => {
+      synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
+    }, i * 1500);
 
-      opcoes.sort(() => Math.random() - 0.5);
+    timeouts.push(t);
+  });
+}
 
-      opcoes.forEach(op => {
-        const btn = document.createElement("button");
-        btn.innerText = op;
-        btn.onclick = () => verificar(op);
-        div.appendChild(btn);
-      });
-    }
+function gerarOpcaoErrada() {
+  let opcao = [];
 
-    function verificar(resposta) {
-      if (respondido) return;
-      respondido = true;
+  for (let i = 0; i < 4; i++) {
+    opcao.push(acordesDoTom[Math.floor(Math.random() * acordesDoTom.length)]);
+  }
 
-      if (resposta === respostaCorreta.join(" - ")) {
-        document.getElementById("resultado").innerText = "✅ Acertou!";
-        score += 10;
-        acertos++;
-      } else {
-        document.getElementById("resultado").innerText = "❌ Errou!";
-        erros++;
-      }
+  return opcao.join(" - ");
+}
 
-      document.getElementById("proxima").style.display = "inline-block";
-      atualizarUI();
-    }
+function gerarOpcoes() {
+  const div = document.getElementById("opcoes");
+  div.innerHTML = "";
 
-    window.proximaFase = function () {
-      limparAudio();
-      fase++;
+  const opcoes = [
+    respostaCorreta.join(" - "),
+    gerarOpcaoErrada(),
+    gerarOpcaoErrada(),
+    gerarOpcaoErrada()
+  ];
 
-      if (fase > 5) {
-        mostrarTelaFinal();
-        return;
-      }
+  opcoes.sort(() => Math.random() - 0.5);
 
-      tocarSequencia();
-      atualizarUI();
-    }
+  opcoes.forEach(op => {
+    const btn = document.createElement("button");
+    btn.innerText = op;
+    btn.onclick = () => verificar(op);
+    div.appendChild(btn);
+  });
+}
 
-    function mostrarTelaFinal() {
-      document.getElementById("jogo").style.display = "none";
-      document.getElementById("telaFinal").style.display = "flex";
+function verificar(resposta) {
+  if (respondido) return;
+  respondido = true;
 
-      document.getElementById("finalScore").innerText = "Pontuação: " + score;
-      document.getElementById("finalAcertos").innerText = "Acertos: " + acertos;
-      document.getElementById("finalErros").innerText = "Erros: " + erros;
-    }
+  const correta = respostaCorreta.join(" - ");
 
-    function reiniciar() {
-      limparAudio();
+  if (resposta === correta) {
+    document.getElementById("resultado").innerText = "✅ Acertou!";
+    score += 10;
+    acertos++;
+  } else {
+    document.getElementById("resultado").innerText = `❌ Errou!
+Resposta correta: ${correta}`;
+    erros++;
+  }
 
-      fase = 1;
-      score = 0;
-      acertos = 0;
-      erros = 0;
+  document.getElementById("proxima").style.display = "inline-block";
+  atualizarUI();
+}
 
-      document.getElementById("telaFinal").style.display = "none";
-      document.getElementById("jogo").style.display = "block";
+window.proximaFase = function() {
+  limparAudio();
+  fase++;
 
-      atualizarUI();
-      tocarSequencia();
-    }
+  if (fase > 5) {
+    mostrarTelaFinal();
+    return;
+  }
 
-    atualizarUI();
-  </script>
+  tocarSequencia();
+  atualizarUI();
+}
+
+function mostrarTelaFinal() {
+  document.getElementById("jogo").style.display = "none";
+  document.getElementById("telaFinal").style.display = "flex";
+
+  document.getElementById("finalScore").innerText = "Pontuação: " + score;
+  document.getElementById("finalAcertos").innerText = "Acertos: " + acertos;
+  document.getElementById("finalErros").innerText = "Erros: " + erros;
+}
+
+function reiniciar() {
+  limparAudio();
+
+  fase = 1;
+  score = 0;
+  acertos = 0;
+  erros = 0;
+
+  document.getElementById("telaFinal").style.display = "none";
+  document.getElementById("jogo").style.display = "block";
+
+  atualizarUI();
+  tocarSequencia();
+}
+
+atualizarUI();
+</script>
 
 </body>
-
 </html>
