@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jogo de Acordes</title>
+  <script src="https://unpkg.com/tone"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #2c2c54);
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      margin: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      font-size: 24px;
+    }
+
+    button {
+      margin: 8px 0;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #6c5ce7;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      width: 100%;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+    }
+
+    #opcoes button {
+      width: 100%;
+    }
+
+    #resultado {
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    /* Tela final */
+    #telaFinal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .final-card {
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      padding: 25px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* Responsividade extra */
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 20px;
+      }
+
+      .card {
+        padding: 15px;
+      }
+
+      button {
+        font-size: 15px;
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card" id="jogo">
+    <h1>🎵 Jogo de Acordes</h1>
+    <p id="fase"></p>
+    <p id="score"></p>
+
+    <button onclick="tocarSequencia()">▶ Ouvir acordes</button>
+    <button onclick="repetir()">🔁 Ouvir novamente</button>
+
+    <div id="opcoes"></div>
+    <p id="resultado"></p>
+
+    <button id="proxima" style="display:none" onclick="proximaFase()">
+      ➡ Próxima fase
+    </button>
+  </div>
+
+  <div id="telaFinal">
+    <div class="final-card">
+      <h1>🏆 Parabéns!</h1>
+      <p id="finalScore"></p>
+      <p id="finalAcertos"></p>
+      <p id="finalErros"></p>
+      <button onclick="reiniciar()">🔄 Jogar novamente</button>
+    </div>
+  </div>
+
+  <script>
+    const synth = new Tone.PolySynth().toDestination();
+
+    let timeouts = [];
+    let fase = 1;
+    let score = 0;
+    let acertos = 0;
+    let erros = 0;
+    let respostaCorreta = [];
+    let sequenciaAtual = [];
+    let respondido = false;
+
+    const campos = {
+      C: ["C", "Dm", "Em", "F", "G", "Am"],
+      D: ["D", "Em", "F#m", "G", "A", "Bm"],
+      G: ["G", "Am", "Bm", "C", "D", "Em"]
+    };
+
+    function limparAudio() {
+      timeouts.forEach(t => clearTimeout(t));
+      timeouts = [];
+      synth.releaseAll();
+    }
+
+    function gerarAcorde(acorde) {
+      const mapa = {
+        "C": ["C4", "E4", "G4"],
+        "Dm": ["D4", "F4", "A4"],
+        "Em": ["E4", "G4", "B4"],
+        "F": ["F4", "A4", "C5"],
+        "G": ["G4", "B4", "D5"],
+        "Am": ["A4", "C5", "E5"],
+        "D": ["D4", "F#4", "A4"],
+        "F#m": ["F#4", "A4", "C#5"],
+        "A": ["A4", "C#5", "E5"],
+        "Bm": ["B4", "D5", "F#5"]
+      };
+      return mapa[acorde];
+    }
+
+    function atualizarUI() {
+      document.getElementById("fase").innerText = "Fase: " + fase + " / 5";
+      document.getElementById("score").innerText = "Pontuação: " + score;
+    }
+
+    window.tocarSequencia = function () {
+      Tone.start();
+      limparAudio();
+
+      respondido = false;
+      document.getElementById("resultado").innerText = "";
+      document.getElementById("proxima").style.display = "none";
+
+      const tons = Object.keys(campos);
+      const tom = tons[Math.floor(Math.random() * tons.length)];
+      const acordes = campos[tom];
+
+      respostaCorreta = [];
+      sequenciaAtual = [];
+
+      for (let i = 0; i < 4; i++) {
+        const acorde = acordes[Math.floor(Math.random() * acordes.length)];
+        respostaCorreta.push(acorde);
+        sequenciaAtual.push(acorde);
+
+        const t = setTimeout(() => {
+          synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
+        }, i * 1500);
+
+        timeouts.push(t);
+      }
+
+      gerarOpcoes();
+    }
+
+    window.repetir = function () {
+      limparAudio();
+
+      sequenciaAtual.forEach((acorde, i) => {
+        const t = setTimeout(() => {
+          synth.triggerAttackRelease(gerarAcorde(acorde), "2n");
+        }, i * 1500);
+
+        timeouts.push(t);
+      });
+    }
+
+    function gerarOpcoes() {
+      const div = document.getElementById("opcoes");
+      div.innerHTML = "";
+
+      const opcoes = [
+        respostaCorreta.join(" - "),
+        "C - F - G - Am",
+        "Dm - G - C - Em",
+        "Am - F - C - G"
+      ];
+
+      opcoes.sort(() => Math.random() - 0.5);
+
+      opcoes.forEach(op => {
+        const btn = document.createElement("button");
+        btn.innerText = op;
+        btn.onclick = () => verificar(op);
+        div.appendChild(btn);
+      });
+    }
+
+    function verificar(resposta) {
+      if (respondido) return;
+      respondido = true;
+
+      if (resposta === respostaCorreta.join(" - ")) {
+        document.getElementById("resultado").innerText = "✅ Acertou!";
+        score += 10;
+        acertos++;
+      } else {
+        document.getElementById("resultado").innerText = "❌ Errou!";
+        erros++;
+      }
+
+      document.getElementById("proxima").style.display = "inline-block";
+      atualizarUI();
+    }
+
+    window.proximaFase = function () {
+      limparAudio();
+      fase++;
+
+      if (fase > 5) {
+        mostrarTelaFinal();
+        return;
+      }
+
+      tocarSequencia();
+      atualizarUI();
+    }
+
+    function mostrarTelaFinal() {
+      document.getElementById("jogo").style.display = "none";
+      document.getElementById("telaFinal").style.display = "flex";
+
+      document.getElementById("finalScore").innerText = "Pontuação: " + score;
+      document.getElementById("finalAcertos").innerText = "Acertos: " + acertos;
+      document.getElementById("finalErros").innerText = "Erros: " + erros;
+    }
+
+    function reiniciar() {
+      limparAudio();
+
+      fase = 1;
+      score = 0;
+      acertos = 0;
+      erros = 0;
+
+      document.getElementById("telaFinal").style.display = "none";
+      document.getElementById("jogo").style.display = "block";
+
+      atualizarUI();
+      tocarSequencia();
+    }
+
+    atualizarUI();
+  </script>
+
+</body>
+
+</html>
