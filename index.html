@@ -3,147 +3,1094 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jogo Musical</title>
-  <script src="https://unpkg.com/tone"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sintonia • Jogo Musical</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,600;1,9..144,800&family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
   <style>
-    body {
-      font-family: Arial;
-      background: linear-gradient(135deg, #1e1e2f, #2c2c54);
-      color: white;
-      text-align: center;
-      padding: 20px;
+    :root {
+      --paper: #F2EBDA;
+      --paper-soft: #EFE6D0;
+      --ink: #15110D;
+      --ink-soft: #2A211A;
+      --pink: #F4476B;
+      --pink-deep: #D4253F;
+      --yellow: #F6C445;
+      --yellow-deep: #E2A91A;
+      --jade: #3CB371;
+      --jade-deep: #248A50;
+      --sky: #7CC6DE;
+      --grape: #5B2A86;
+      --coral: #FF7A59;
+
+      --shadow: 6px 6px 0 var(--ink);
+      --shadow-sm: 3px 3px 0 var(--ink);
+      --shadow-lg: 8px 8px 0 var(--ink);
+      --shadow-xl: 10px 10px 0 var(--ink);
+
+      --radius: 18px;
+      --radius-sm: 12px;
+      --radius-lg: 26px;
+
+      --border: 2.5px solid var(--ink);
+      --border-thick: 3px solid var(--ink);
     }
 
-    #timerBox {
-      background: #ff7675;
-      padding: 10px;
-      border-radius: 12px;
-      font-size: 20px;
-      font-weight: bold;
-      width: fit-content;
-      margin: 10px auto;
-      box-shadow: 0 0 10px rgba(255, 118, 117, 0.7);
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .card {
-      max-width: 520px;
-      margin: auto;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 20px;
-      border-radius: 16px;
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Geist', system-ui, sans-serif;
+      overflow-x: hidden;
     }
 
-    button,
-    select {
-      width: 100%;
-      padding: 14px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 12px;
-      background: #6c5ce7;
-      color: white;
-      font-weight: bold;
-      font-size: 16px;
-    }
-
-    #timer {
-      margin: 10px 0;
-      font-size: 18px;
-    }
-
-    #telaFinal {
+    /* Paper texture: layered radial grain + subtle noise */
+    body::before {
+      content: "";
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.95);
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 12% 18%, rgba(244, 71, 107, 0.07), transparent 35%),
+        radial-gradient(circle at 88% 82%, rgba(246, 196, 69, 0.10), transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(60, 179, 113, 0.04), transparent 60%);
+      z-index: 0;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.07 0 0 0 0 0.05 0 0 0 0.45 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      z-index: 0;
+    }
+
+    /* Floating decorative shapes */
+    .decor {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.92;
+    }
+    .decor.n1 { top: 6%;  left: 4%;  animation: float 9s ease-in-out infinite; }
+    .decor.n2 { top: 14%; right: 5%; animation: float 11s ease-in-out infinite -2s; }
+    .decor.n3 { bottom: 8%; left: 6%; animation: float 13s ease-in-out infinite -4s; }
+    .decor.n4 { bottom: 18%; right: 4%; animation: float 10s ease-in-out infinite -1s; }
+    .decor.n5 { top: 45%; left: 2%; animation: float 12s ease-in-out infinite -3s; opacity: 0.6; }
+    .decor.n6 { top: 55%; right: 2%; animation: float 14s ease-in-out infinite -5s; opacity: 0.6; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
+      50%      { transform: translateY(-14px) rotate(calc(var(--rot, 0deg) + 4deg)); }
+    }
+
+    @media (max-width: 540px) {
+      .decor.n5, .decor.n6 { display: none; }
+      .decor { transform: scale(0.75); }
+    }
+
+    /* Layout */
+    .stage {
+      position: relative;
+      z-index: 2;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .vinyl {
+      width: 38px;
+      height: 38px;
+      animation: spin 6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 0.95;
+    }
+    .brand-name {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 26px;
+      letter-spacing: -0.02em;
+    }
+    .brand-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-top: 2px;
+    }
+
+    .header-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border: var(--border);
+      border-radius: 999px;
+      background: var(--paper-soft);
+      transform: rotate(-2deg);
+    }
+
+    /* Hero panel for menu */
+    .hero {
+      background: var(--paper-soft);
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      padding: 28px 22px 24px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 14px; right: 14px;
+      width: 14px; height: 14px;
+      background: var(--pink);
+      border: var(--border);
+      border-radius: 50%;
+    }
+
+    .hero-title {
+      font-family: 'Fraunces', serif;
+      font-weight: 800;
+      font-size: 44px;
+      line-height: 0.95;
+      letter-spacing: -0.035em;
+      margin: 0 0 8px;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--pink);
+    }
+    .hero-sub {
+      font-size: 14.5px;
+      line-height: 1.45;
+      opacity: 0.72;
+      margin: 0 0 22px;
+      max-width: 28ch;
+    }
+
+    /* Section labels */
+    .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .label::after {
+      content: "";
+      flex: 1;
+      height: 1.5px;
+      background: var(--ink);
+      opacity: 0.25;
+    }
+
+    /* Mode picker — vertical list with horizontal cards */
+    .modes {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+    .mode-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--paper);
+      border: var(--border-thick);
+      border-radius: var(--radius);
+      padding: 11px 14px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+    .mode-card:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .mode-card.active {
+      background: var(--yellow);
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+    .mode-icon {
+      width: 50px;
+      flex-shrink: 0;
+      text-align: center;
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    .mode-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .mode-name {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 16.5px;
+      letter-spacing: -0.01em;
+      display: block;
+    }
+    .mode-desc {
+      font-size: 12px;
+      opacity: 0.65;
+      margin-top: 1px;
+      line-height: 1.3;
+    }
+    .mode-card .mode-tick {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--ink);
+      background: var(--paper-soft);
+      transition: background 0.15s;
+    }
+    .mode-card.active .mode-tick {
+      background: var(--ink);
+      box-shadow: inset 0 0 0 3px var(--yellow);
+    }
+
+    /* Instrument pills */
+    .instruments {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .inst-pill {
+      background: var(--paper);
+      border: var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 6px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.12s, box-shadow 0.12s, background 0.2s;
+      text-align: center;
+    }
+    .inst-pill:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+    .inst-pill.active {
+      background: var(--jade);
+      color: var(--paper);
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+    .inst-emoji {
+      font-size: 22px;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .inst-name {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Big chunky button */
+    .btn-primary {
+      width: 100%;
+      padding: 18px;
+      border: var(--border-thick);
+      border-radius: var(--radius);
+      background: var(--pink);
+      color: var(--paper);
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 19px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.1s, box-shadow 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-primary:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 10px 10px 0 var(--ink);
+    }
+    .btn-primary:active {
+      transform: translate(6px, 6px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+    .btn-primary .arr {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 22px;
+      text-transform: none;
+    }
+
+    /* Game area */
+    .game-shell {
+      background: var(--paper-soft);
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      padding: 22px 20px 24px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Status row: phase pips + score */
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .pips {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .pip {
+      width: 22px;
+      height: 10px;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      background: var(--paper);
+      transition: background 0.3s, transform 0.2s;
+    }
+    .pip.done { background: var(--jade); }
+    .pip.fail { background: var(--pink); }
+    .pip.now { background: var(--yellow); transform: scaleY(1.4); }
+
+    .score-badge {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      transform: rotate(2deg);
+    }
+    .score-label {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.65;
+    }
+    .score-value {
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Speaker / wave display */
+    .speaker-card {
+      background: var(--ink);
+      color: var(--paper);
+      border: var(--border-thick);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .speaker-card::before {
+      content: "";
+      position: absolute;
+      top: -20px; right: -20px;
+      width: 80px; height: 80px;
+      background: var(--pink);
+      border-radius: 50%;
+      opacity: 0.15;
+    }
+    .speaker-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 8px;
+    }
+    .wave {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 38px;
+      justify-content: center;
+    }
+    .wave span {
+      display: block;
+      width: 5px;
+      height: 30%;
+      background: var(--yellow);
+      border-radius: 2px;
+    }
+    .wave.playing span {
+      animation: waveBeat 0.8s ease-in-out infinite;
+    }
+    .wave span:nth-child(1) { animation-delay: -0.1s; background: var(--yellow); }
+    .wave span:nth-child(2) { animation-delay: -0.2s; background: var(--pink); }
+    .wave span:nth-child(3) { animation-delay: -0.3s; background: var(--jade); }
+    .wave span:nth-child(4) { animation-delay: -0.4s; background: var(--sky); }
+    .wave span:nth-child(5) { animation-delay: -0.5s; background: var(--coral); }
+    .wave span:nth-child(6) { animation-delay: -0.6s; background: var(--yellow); }
+    .wave span:nth-child(7) { animation-delay: -0.7s; background: var(--pink); }
+    .wave span:nth-child(8) { animation-delay: -0.8s; background: var(--jade); }
+    .wave span:nth-child(9) { animation-delay: -0.9s; background: var(--sky); }
+    .wave span:nth-child(10) { animation-delay: -1s;  background: var(--coral); }
+    .wave span:nth-child(11) { animation-delay: -1.1s; background: var(--yellow); }
+    .wave span:nth-child(12) { animation-delay: -1.2s; background: var(--pink); }
+    .wave span:nth-child(13) { animation-delay: -1.3s; background: var(--jade); }
+
+    @keyframes waveBeat {
+      0%, 100% { height: 20%; }
+      50%      { height: 95%; }
+    }
+
+    /* Question card */
+    .question {
+      background: var(--paper);
+      border: var(--border-thick);
+      border-radius: var(--radius);
+      padding: 18px 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question.grid-q {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 14px;
+    }
+    .q-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .q-mini {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+    .q-value {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 38px;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+    }
+    .q-value.accent { color: var(--pink); }
+    .q-prompt {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: -0.01em;
+    }
+    .q-prompt em {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      color: var(--pink);
+    }
+
+    /* Timer */
+    .timer-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .timer-bar {
+      flex: 1;
+      height: 14px;
+      background: var(--paper);
+      border: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .timer-fill {
+      height: 100%;
+      background: var(--jade);
+      width: 100%;
+      transition: width 0.95s linear, background 0.3s;
+      border-right: 2px solid var(--ink);
+    }
+    .timer-fill.mid { background: var(--yellow); }
+    .timer-fill.low { background: var(--pink); }
+    .timer-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 18px;
+      min-width: 26px;
+      text-align: center;
+      padding: 4px 10px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 8px;
+    }
+
+    /* Answer options */
+    .options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .options.cols-1 { grid-template-columns: 1fr; }
+    .opt-btn {
+      padding: 16px 10px;
+      border: var(--border-thick);
+      border-radius: var(--radius-sm);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .opt-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--ink);
+      background: var(--yellow);
+    }
+    .opt-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0 0 0 var(--ink);
+    }
+    .opt-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+    .opt-btn.right {
+      background: var(--jade);
+      color: var(--paper);
+    }
+    .opt-btn.wrong {
+      background: var(--pink);
+      color: var(--paper);
+      animation: shakeX 0.4s;
+    }
+    .opt-btn.was-right {
+      background: var(--jade);
+      color: var(--paper);
+    }
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    /* Repeat button */
+    .btn-repeat {
+      width: 100%;
+      padding: 12px;
+      border: var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.1s, box-shadow 0.1s;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-repeat:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--ink);
+      background: var(--sky);
+    }
+    .btn-repeat:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+
+    /* Result + next */
+    .result {
+      text-align: center;
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 22px;
+      margin: 4px 0 12px;
+      letter-spacing: -0.02em;
+      min-height: 28px;
+    }
+    .result .correct-pill {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-style: normal;
+      font-size: 13px;
+      padding: 3px 9px;
+      margin-left: 6px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .result.win { color: var(--jade-deep); }
+    .result.lose { color: var(--pink-deep); }
+
+    .btn-next {
+      width: 100%;
+      padding: 16px;
+      border: var(--border-thick);
+      border-radius: var(--radius);
+      background: var(--ink);
+      color: var(--paper);
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 17px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.1s, box-shadow 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-next:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 8px 8px 0 var(--pink);
+    }
+    .btn-next:active {
+      transform: translate(4px, 4px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+    .btn-next .arr {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 20px;
+      text-transform: none;
+    }
+
+    /* Final screen */
+    .final-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--paper);
       display: none;
       align-items: center;
       justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+    .final-screen.show { display: flex; }
+
+    .final-card {
+      background: var(--paper-soft);
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      padding: 30px 26px;
+      box-shadow: var(--shadow-xl);
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      transform: rotate(-1deg);
+    }
+    .final-medal {
+      width: 90px;
+      height: 90px;
+      margin: -60px auto 12px;
+      background: var(--yellow);
+      border: var(--border-thick);
+      border-radius: 50%;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 50px;
+      transform: rotate(-8deg);
+    }
+    .final-title {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 38px;
+      letter-spacing: -0.03em;
+      margin: 6px 0 4px;
+      line-height: 1;
+    }
+    .final-title em {
+      color: var(--pink);
+    }
+    .final-sub {
+      font-size: 13px;
+      opacity: 0.65;
+      margin: 0 0 22px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+    .stat {
+      background: var(--paper);
+      border: var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 6px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 4px;
+    }
+    .stat-val {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .stat.acertos .stat-val { color: var(--jade-deep); }
+    .stat.erros .stat-val { color: var(--pink-deep); }
+
+    /* Reveal animation on game screen + cards */
+    .reveal {
+      animation: rise 0.5s cubic-bezier(.2,.8,.2,1) both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    #perguntaBox {
-      background: rgba(255, 255, 255, 0.08);
-      padding: 15px;
-      border-radius: 12px;
-      margin: 15px 0;
-      font-size: 18px;
-      line-height: 1.6;
+    .pulse {
+      animation: pulse 0.6s ease-out;
     }
-
-    .label {
-      opacity: 0.7;
-      font-size: 14px;
-    }
-
-    .valor {
-      font-weight: bold;
-      font-size: 22px;
-      color: #a29bfe;
-    }
-
-    #timerBox {
-      display: none;
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.08); }
+      100% { transform: scale(1); }
     }
   </style>
 </head>
 
 <body>
 
-  <div class="card" id="jogo">
+  <!-- Decorative floating elements -->
+  <svg class="decor n1" style="--rot: -8deg" width="42" height="56" viewBox="0 0 42 56" fill="none">
+    <path d="M14 4 L36 0 L36 40 Q36 50 26 50 Q16 50 16 42 Q16 36 24 36 Q30 36 32 38 L32 8 L18 11 L18 44 Q18 54 8 54 Q-2 54 -2 46 Q-2 40 6 40 Q12 40 14 42 Z"
+          fill="#F4476B" stroke="#15110D" stroke-width="2.5" stroke-linejoin="round"/>
+  </svg>
 
-    <h1>🎵 Jogo Musical</h1>
+  <svg class="decor n2" style="--rot: 10deg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+    <circle cx="24" cy="24" r="20" fill="#F6C445" stroke="#15110D" stroke-width="2.5"/>
+    <circle cx="24" cy="24" r="6" fill="#15110D"/>
+    <path d="M24 8 L26 22 L24 22 Z" fill="#15110D" opacity="0.3"/>
+  </svg>
 
-    <!-- MENU -->
-    <div id="menuInicial">
-      <select id="modo">
+  <svg class="decor n3" style="--rot: 15deg" width="52" height="32" viewBox="0 0 52 32" fill="none">
+    <path d="M2 16 Q10 2 18 16 T34 16 T50 16" stroke="#3CB371" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </svg>
+
+  <svg class="decor n4" style="--rot: -12deg" width="40" height="50" viewBox="0 0 40 50" fill="none">
+    <path d="M10 4 L34 0 L34 38 Q34 48 24 48 Q14 48 14 40 Q14 34 22 34 Q28 34 30 36 L30 8 L14 11 L14 4 Z"
+          fill="#5B2A86" stroke="#15110D" stroke-width="2.5" stroke-linejoin="round"/>
+  </svg>
+
+  <svg class="decor n5" style="--rot: 25deg" width="30" height="30" viewBox="0 0 30 30" fill="none">
+    <path d="M15 0 L18 12 L30 15 L18 18 L15 30 L12 18 L0 15 L12 12 Z" fill="#FF7A59" stroke="#15110D" stroke-width="2"/>
+  </svg>
+
+  <svg class="decor n6" style="--rot: -18deg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <rect x="4" y="4" width="28" height="28" fill="#7CC6DE" stroke="#15110D" stroke-width="2.5" transform="rotate(15 18 18)"/>
+  </svg>
+
+  <main class="stage">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="brand">
+        <svg class="vinyl" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="18" fill="#15110D" stroke="#15110D" stroke-width="2"/>
+          <circle cx="20" cy="20" r="14" fill="none" stroke="#F2EBDA" stroke-width="0.5" opacity="0.4"/>
+          <circle cx="20" cy="20" r="10" fill="none" stroke="#F2EBDA" stroke-width="0.5" opacity="0.4"/>
+          <circle cx="20" cy="20" r="6" fill="#F4476B" stroke="#F2EBDA" stroke-width="1"/>
+          <circle cx="20" cy="20" r="1.5" fill="#F2EBDA"/>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name">Sintonia</span>
+          <span class="brand-sub">Estudo · Audição</span>
+        </div>
+      </div>
+      <div class="header-tag" id="headerTag">Lado A</div>
+    </header>
+
+    <!-- MENU INICIAL -->
+    <section class="hero" id="menuInicial">
+      <h1 class="hero-title">Treine seu <em>ouvido</em><br>e sua teoria.</h1>
+      <p class="hero-sub">Escolha um modo, um instrumento, e veja até onde sua escuta chega.</p>
+
+      <p class="label">Modo de jogo</p>
+      <div class="modes" id="modeGroup">
+        <div class="mode-card active" data-mode="acorde">
+          <div class="mode-icon">♪♫</div>
+          <div class="mode-body">
+            <span class="mode-name">Acordes</span>
+            <div class="mode-desc">Ouça e identifique a sequência</div>
+          </div>
+          <div class="mode-tick"></div>
+        </div>
+        <div class="mode-card" data-mode="tirar">
+          <div class="mode-icon">?</div>
+          <div class="mode-body">
+            <span class="mode-name">Tirar de Ouvido</span>
+            <div class="mode-desc">Reconheça o grau ouvindo no tom · auditivo funcional</div>
+          </div>
+          <div class="mode-tick"></div>
+        </div>
+        <div class="mode-card" data-mode="nota">
+          <div class="mode-icon">♪</div>
+          <div class="mode-body">
+            <span class="mode-name">Notas Soltas</span>
+            <div class="mode-desc">Uma nota tocada — diga qual</div>
+          </div>
+          <div class="mode-tick"></div>
+        </div>
+        <div class="mode-card" data-mode="grau">
+          <div class="mode-icon">IV</div>
+          <div class="mode-body">
+            <span class="mode-name">Graus</span>
+            <div class="mode-desc">Teoria sob pressão · com cronômetro</div>
+          </div>
+          <div class="mode-tick"></div>
+        </div>
+        <div class="mode-card" data-mode="intervalo">
+          <div class="mode-icon">♪↗</div>
+          <div class="mode-body">
+            <span class="mode-name">Intervalos</span>
+            <div class="mode-desc">A distância entre duas notas</div>
+          </div>
+          <div class="mode-tick"></div>
+        </div>
+        <div class="mode-card" data-mode="qualidade">
+          <div class="mode-icon">Δm</div>
+          <div class="mode-body">
+            <span class="mode-name">Qualidade</span>
+            <div class="mode-desc">Maior, menor, dim, aum, 7…</div>
+          </div>
+          <div class="mode-tick"></div>
+        </div>
+        <div class="mode-card" data-mode="escala">
+          <div class="mode-icon">do↗</div>
+          <div class="mode-body">
+            <span class="mode-name">Escalas e Modos</span>
+            <div class="mode-desc">Jônio, Dórico, Frígio, Lídio…</div>
+          </div>
+          <div class="mode-tick"></div>
+        </div>
+      </div>
+
+      <p class="label">Instrumento</p>
+      <div class="instruments" id="instGroup">
+        <div class="inst-pill active" data-inst="piano">
+          <span class="inst-emoji">🎹</span>
+          <span class="inst-name">Piano</span>
+        </div>
+        <div class="inst-pill" data-inst="organ">
+          <span class="inst-emoji">🪗</span>
+          <span class="inst-name">Órgão</span>
+        </div>
+        <div class="inst-pill" data-inst="pad">
+          <span class="inst-emoji">🌫️</span>
+          <span class="inst-name">Pad</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="iniciar()">
+        <span>Começar</span>
+        <span class="arr">→</span>
+      </button>
+
+      <!-- hidden original-style selects to preserve API used by JS -->
+      <select id="modo" style="display:none">
         <option value="acorde">Modo Acordes</option>
+        <option value="tirar">Modo Tirar de Ouvido</option>
+        <option value="nota">Modo Notas Soltas</option>
         <option value="grau">Modo Graus</option>
+        <option value="intervalo">Modo Intervalos</option>
+        <option value="qualidade">Modo Qualidade</option>
+        <option value="escala">Modo Escalas</option>
       </select>
-
-      <select id="instrumento">
+      <select id="instrumento" style="display:none">
         <option value="piano">Piano</option>
         <option value="organ">Órgão</option>
         <option value="pad">Pad</option>
       </select>
+    </section>
 
-      <button onclick="iniciar()">▶ Começar</button>
-    </div>
+    <!-- ÁREA JOGO -->
+    <section id="areaJogo" style="display:none">
+      <div class="game-shell">
 
-    <div id="areaJogo" style="display:none;">
-      <!-- JOGO -->
-      <p id="fase"></p>
-      <p id="score"></p>
-      <div id="timerBox">
-        ⏱ <span id="timer">3</span>
+        <div class="status">
+          <div class="pips" id="pips"></div>
+          <div class="score-badge">
+            <span class="score-label">SCORE</span>
+            <span class="score-value" id="scoreVal">0</span>
+          </div>
+        </div>
+
+        <!-- Speaker / wave (chord mode) -->
+        <div class="speaker-card" id="speakerCard" style="display:none">
+          <div class="speaker-label">▶ Tocando a sequência</div>
+          <div class="wave playing" id="wave">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <!-- Repeat (chord mode) -->
+        <button class="btn-repeat" id="btnRepetir" onclick="repetir()" style="display:none">
+          <span style="font-size:16px">↻</span> Repetir sequência
+        </button>
+
+        <!-- Question card -->
+        <div id="perguntaBox" class="question"></div>
+
+        <!-- Timer (grau mode) -->
+        <div class="timer-row" id="timerRow" style="display:none">
+          <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+          <div class="timer-num" id="timerNum">5</div>
+        </div>
+
+        <!-- Options -->
+        <div class="options" id="opcoes"></div>
+
+        <!-- Result -->
+        <p class="result" id="resultado"></p>
+
+        <!-- Next -->
+        <button class="btn-next" id="proxima" onclick="proximaFase()" style="display:none">
+          <span id="nextLabel">Próxima fase</span>
+          <span class="arr">→</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- FINAL -->
+  <div class="final-screen" id="telaFinal">
+    <div class="final-card">
+      <div class="final-medal" id="finalMedal">★</div>
+      <h2 class="final-title" id="finalTitle">Fim do <em>set</em></h2>
+      <p class="final-sub">Resultado da sessão</p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Score</div>
+          <div class="stat-val" id="finalScoreVal">0</div>
+        </div>
+        <div class="stat acertos">
+          <div class="stat-label">Acertos</div>
+          <div class="stat-val" id="finalAcertos">0</div>
+        </div>
+        <div class="stat erros">
+          <div class="stat-label">Erros</div>
+          <div class="stat-val" id="finalErros">0</div>
+        </div>
       </div>
 
-      <button id="btnRepetir" onclick="repetir()">🔁 Repetir</button>
-
-      <div id="perguntaBox"></div>
-      <div id="opcoes"></div>
-      <p id="resultado"></p>
-
-      <button id="proxima" style="display:none" onclick="proximaFase()">➡ Próxima</button>
-    </div>
-  </div>
-
-  <!-- TELA FINAL -->
-  <div id="telaFinal">
-    <div class="card">
-      <h1>🏆 Resultado</h1>
-      <p id="finalScore"></p>
-      <button onclick="reiniciar()">🔄 Jogar novamente</button>
+      <button class="btn-primary" onclick="reiniciar()">
+        <span>Jogar de novo</span>
+        <span class="arr">↻</span>
+      </button>
     </div>
   </div>
 
   <script>
+    /* ===== ORIGINAL GAME LOGIC — preserved, with hooks for the new UI ===== */
+
     let synth;
     let timeouts = [];
     let fase = 1, score = 0, acertos = 0, erros = 0;
     let respostaCorreta = [];
     let sequenciaAtual = [];
     let timerInterval;
+    const TOTAL_FASES = 5;
+    const TIMER_SECONDS = 5;
 
     const graus = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
@@ -154,17 +1101,10 @@
       A: ["A", "Bm", "C#m", "D", "E", "F#m"]
     };
 
-    const camposNotas = {
-      C: ["C", "D", "E", "F", "G", "A", "B"],
-      D: ["D", "E", "F#", "G", "A", "B", "C#"],
-      G: ["G", "A", "B", "C", "D", "E", "F#"],
-      A: ["A", "B", "C#", "D", "E", "F#", "G#"]
-    };
-
     function criarInstrumento(tipo) {
       if (tipo === "piano") synth = new Tone.PolySynth(Tone.Synth).toDestination();
       if (tipo === "organ") synth = new Tone.PolySynth(Tone.AMSynth).toDestination();
-      if (tipo === "pad") synth = new Tone.PolySynth(Tone.FMSynth).toDestination();
+      if (tipo === "pad")   synth = new Tone.PolySynth(Tone.FMSynth).toDestination();
     }
 
     function limparAudio() {
@@ -183,19 +1123,52 @@
       return map[ac];
     }
 
+    /* ===== UI bindings for menu (mode + instrument cards) ===== */
+    document.querySelectorAll('#modeGroup .mode-card').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('#modeGroup .mode-card').forEach(x => x.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('modo').value = el.dataset.mode;
+      });
+    });
+    document.querySelectorAll('#instGroup .inst-pill').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('#instGroup .inst-pill').forEach(x => x.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('instrumento').value = el.dataset.inst;
+      });
+    });
+
     function iniciar() {
       const tipo = document.getElementById("instrumento").value;
       criarInstrumento(tipo);
+      // Tone.js requires user-gesture context start
+      if (Tone.context.state !== 'running') Tone.start();
 
       document.getElementById("menuInicial").style.display = "none";
       document.getElementById("areaJogo").style.display = "block";
+      document.getElementById("areaJogo").classList.add('reveal');
+      document.getElementById('headerTag').innerText = 'Lado B';
 
+      buildPips();
       proximaPergunta();
+    }
+
+    function buildPips() {
+      const wrap = document.getElementById('pips');
+      wrap.innerHTML = '';
+      for (let i = 0; i < TOTAL_FASES; i++) {
+        const p = document.createElement('div');
+        p.className = 'pip';
+        if (i === 0) p.classList.add('now');
+        wrap.appendChild(p);
+      }
     }
 
     function tocarSequencia(acordes) {
       limparAudio();
       sequenciaAtual = acordes;
+      startWave();
 
       acordes.forEach((ac, i) => {
         const t = setTimeout(() => {
@@ -203,25 +1176,126 @@
         }, i * 1200);
         timeouts.push(t);
       });
+
+      stopWaveAfter(acordes.length * 1200 + 600);
     }
 
+    /* ===== Helpers shared by the new modes ===== */
+
+    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+    function midiToNote(midi) {
+      return NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+    }
+
+    function midiToNoteName(midi) {
+      return NOTE_NAMES[midi % 12];
+    }
+
+    function randomRoot(low = 60, high = 67) {
+      // default: C4..G4 — comfortable range
+      return low + Math.floor(Math.random() * (high - low + 1));
+    }
+
+    function startWave() { document.getElementById('wave').classList.add('playing'); }
+    function stopWave()  { document.getElementById('wave').classList.remove('playing'); }
+    function stopWaveAfter(ms) {
+      const t = setTimeout(stopWave, ms);
+      timeouts.push(t);
+    }
+
+    function tocarMelodia(notes, gap, dur = "2n") {
+      limparAudio();
+      startWave();
+      notes.forEach((n, i) => {
+        const t = setTimeout(() => synth.triggerAttackRelease(n, dur), i * gap);
+        timeouts.push(t);
+      });
+      stopWaveAfter(notes.length * gap + 400);
+    }
+
+    function tocarAcorde(notes, dur = "1n") {
+      limparAudio();
+      startWave();
+      synth.triggerAttackRelease(notes, dur);
+      stopWaveAfter(2200);
+    }
+
+    /* ===== Music theory data ===== */
+
+    const INTERVALOS = {
+      "2ª maior":  2,
+      "3ª menor":  3,
+      "3ª maior":  4,
+      "4ª justa":  5,
+      "trítono":   6,
+      "5ª justa":  7,
+      "6ª maior":  9,
+      "7ª menor": 10,
+      "7ª maior": 11,
+      "8ª justa": 12,
+    };
+
+    const QUALIDADES = {
+      "Maior":      [0, 4, 7],
+      "menor":      [0, 3, 7],
+      "diminuto":   [0, 3, 6],
+      "aumentado":  [0, 4, 8],
+      "menor 7":    [0, 3, 7, 10],
+      "Maj7":       [0, 4, 7, 11],
+      "Dom 7":      [0, 4, 7, 10],
+    };
+
+    const ESCALAS = {
+      "Jônio (Maior)":   [0, 2, 4, 5, 7, 9, 11, 12],
+      "Menor natural":   [0, 2, 3, 5, 7, 8, 10, 12],
+      "Dórico":          [0, 2, 3, 5, 7, 9, 10, 12],
+      "Frígio":          [0, 1, 3, 5, 7, 8, 10, 12],
+      "Lídio":           [0, 2, 4, 6, 7, 9, 11, 12],
+      "Mixolídio":       [0, 2, 4, 5, 7, 9, 10, 12],
+    };
+
+    const MODE_LABELS = {
+      acorde:    "Acordes",
+      tirar:     "Tirar de Ouvido",
+      nota:      "Notas Soltas",
+      grau:      "Graus",
+      intervalo: "Intervalos",
+      qualidade: "Qualidade",
+      escala:    "Escalas",
+    };
+
+    /* ===== Replay handler — each mode sets its own ===== */
+    let replayFn = null;
+
     function repetir() {
-      if (sequenciaAtual.length > 0) tocarSequencia(sequenciaAtual);
+      if (replayFn) replayFn();
     }
 
     function iniciarTimer() {
-      let t = 5;
-      document.getElementById("timer").innerText = t;
-      document.getElementById("timerBox").style.background = "#ff7675";
+      let t = TIMER_SECONDS;
+      const numEl = document.getElementById("timerNum");
+      const fillEl = document.getElementById("timerFill");
+      numEl.innerText = t;
+      fillEl.style.width = '100%';
+      fillEl.classList.remove('mid', 'low');
 
       clearInterval(timerInterval);
 
+      // initial transition reset
+      requestAnimationFrame(() => {
+        fillEl.style.width = ((t - 1) / TIMER_SECONDS * 100) + '%';
+      });
+
       timerInterval = setInterval(() => {
         t--;
-        document.getElementById("timer").innerText = t;
+        numEl.innerText = Math.max(t, 0);
+        fillEl.style.width = (Math.max(t - 1, 0) / TIMER_SECONDS * 100) + '%';
 
+        if (t === 3) fillEl.classList.add('mid');
         if (t === 1) {
-          document.getElementById("timerBox").style.background = "#d63031";
+          fillEl.classList.remove('mid');
+          fillEl.classList.add('low');
         }
 
         if (t <= 0) {
@@ -233,76 +1307,268 @@
 
     function proximaPergunta() {
       document.getElementById("resultado").innerText = "";
+      document.getElementById("resultado").className = "result";
       document.getElementById("proxima").style.display = "none";
 
       const modo = document.getElementById("modo").value;
+      document.getElementById('headerTag').innerText = MODE_LABELS[modo] || "Lado B";
 
-      if (modo === "grau") {
-        document.getElementById("timerBox").style.display = "block";
-      } else {
-        document.getElementById("timerBox").style.display = "none";
+      clearInterval(timerInterval);
+
+      switch (modo) {
+        case "acorde":     rodadaAcorde();    break;
+        case "tirar":      rodadaTirar();     break;
+        case "nota":       rodadaNota();      break;
+        case "grau":       rodadaGrau();      break;
+        case "intervalo":  rodadaIntervalo(); break;
+        case "qualidade":  rodadaQualidade(); break;
+        case "escala":     rodadaEscala();    break;
       }
 
-      if (modo === "acorde") {
-        clearInterval(timerInterval);
-        document.getElementById("timer").innerText = "";
-        document.getElementById("btnRepetir").style.display = "block";
-        const tons = Object.keys(camposAcordes);
-        const tom = tons[Math.floor(Math.random() * tons.length)];
-        const acordes = camposAcordes[tom];
-
-        respostaCorreta = [];
-        for (let i = 0; i < 4; i++) {
-          respostaCorreta.push(acordes[Math.floor(Math.random() * acordes.length)]);
-        }
-
-        tocarSequencia(respostaCorreta);
-        gerarOpcoesAcordes(acordes);
-
-        document.getElementById("perguntaBox").innerHTML = `
-          <div><span class="label">Ouça os acordes</span></div>
-        `;
-      }
-      else {
-        document.getElementById("btnRepetir").style.display = "none";
-
-        const tons = Object.keys(camposAcordes);
-        const tom = tons[Math.floor(Math.random() * tons.length)];
-        const acordes = camposAcordes[tom];
-
-        const idx = Math.floor(Math.random() * acordes.length);
-        const acorde = acordes[idx];
-        const grau = graus[idx];
-
-        const perguntarAcorde = Math.random() > 0.5;
-
-        if (perguntarAcorde) {
-          // MOSTRA ACORDE → RESPONDE GRAU
-          document.getElementById("perguntaBox").innerHTML = `
-            <div><span class="label">Tom</span><br><span class="valor">${tom}</span></div>
-            <div><span class="label">Acorde</span><br><span class="valor">${acorde}</span></div>
-          `;
-          respostaCorreta = grau;
-          gerarOpcoesGraus();
-        } else {
-          // MOSTRA GRAU → RESPONDE ACORDE
-          document.getElementById("perguntaBox").innerHTML = `
-            <div><span class="label">Tom</span><br><span class="valor">${tom}</span></div>
-            <div><span class="label">Grau</span><br><span class="valor">${grau}</span></div>
-          `;
-          respostaCorreta = acorde;
-          gerarOpcoesAcordesSimples(acordes); // ✅ agora essa função existe
-        }
-
-        iniciarTimer();
-      }
+      const perguntaBox = document.getElementById('perguntaBox');
+      perguntaBox.classList.add('reveal');
+      setTimeout(() => perguntaBox.classList.remove('reveal'), 600);
     }
 
+    /* ===== UI presets per kind of round ===== */
+
+    function showListeningUI({ singleCol }) {
+      document.getElementById('speakerCard').style.display = 'block';
+      document.getElementById('btnRepetir').style.display = 'flex';
+      document.getElementById('timerRow').style.display = 'none';
+      const opcoesDiv = document.getElementById('opcoes');
+      if (singleCol) opcoesDiv.classList.add('cols-1');
+      else           opcoesDiv.classList.remove('cols-1');
+    }
+
+    function showTimedUI() {
+      document.getElementById('speakerCard').style.display = 'none';
+      document.getElementById('btnRepetir').style.display = 'none';
+      document.getElementById('timerRow').style.display = 'flex';
+      document.getElementById('opcoes').classList.remove('cols-1');
+    }
+
+    /* ===== Per-mode round configurators ===== */
+
+    function rodadaAcorde() {
+      showListeningUI({ singleCol: true });
+
+      const tons = Object.keys(camposAcordes);
+      const tom = tons[Math.floor(Math.random() * tons.length)];
+      const acordes = camposAcordes[tom];
+
+      respostaCorreta = [];
+      for (let i = 0; i < 4; i++) {
+        respostaCorreta.push(acordes[Math.floor(Math.random() * acordes.length)]);
+      }
+
+      document.getElementById('perguntaBox').className = 'question';
+      document.getElementById('perguntaBox').innerHTML = `
+        <div class="q-prompt">Qual a <em>sequência</em> de acordes em tom de <em>${tom}</em>?</div>
+      `;
+
+      const seq = [...respostaCorreta];
+      replayFn = () => tocarSequencia(seq);
+      replayFn();
+
+      gerarOpcoesAcordes(acordes);
+    }
+
+    function rodadaTirar() {
+      // Functional ear training: establish key with I-V-I cadence,
+      // then play a mystery diatonic chord. User identifies its degree.
+      showListeningUI({ singleCol: false });
+
+      const tons = Object.keys(camposAcordes);
+      const tom = tons[Math.floor(Math.random() * tons.length)];
+      const acordes = camposAcordes[tom];
+
+      const idx = Math.floor(Math.random() * acordes.length);
+      const acordeMisterio = acordes[idx];
+      const grauCorreto = graus[idx];
+
+      respostaCorreta = grauCorreto;
+
+      document.getElementById('perguntaBox').className = 'question grid-q';
+      document.getElementById('perguntaBox').innerHTML = `
+        <div class="q-block"><div class="q-mini">Tom</div><div class="q-value">${tom}</div></div>
+        <div class="q-block"><div class="q-mini">Acorde misterioso</div><div class="q-value accent">?</div></div>
+      `;
+
+      const tonica = acordes[0];    // grau I no tom
+      const dominante = acordes[4]; // grau V no tom
+
+      replayFn = () => tocarContextoEMisterio(tonica, dominante, acordeMisterio);
+      replayFn();
+
+      // 4 opções a partir dos 6 graus disponíveis (I..VI)
+      gerarOpcoesPool(graus.slice(0, 6));
+    }
+
+    function tocarContextoEMisterio(tonica, dominante, misterio) {
+      limparAudio();
+      startWave();
+
+      // Cadência rápida I → V → I pra firmar o tom
+      const cadenceSeq = [tonica, dominante, tonica];
+      const cadenceGap = 650;
+      cadenceSeq.forEach((c, i) => {
+        const t = setTimeout(
+          () => synth.triggerAttackRelease(gerarAcorde(c), "4n"),
+          i * cadenceGap
+        );
+        timeouts.push(t);
+      });
+
+      // Pausa, depois o acorde misterioso (mais longo, pra analisar)
+      const restGap = 700;
+      const mysteryAt = cadenceSeq.length * cadenceGap + restGap;
+      const tM = setTimeout(
+        () => synth.triggerAttackRelease(gerarAcorde(misterio), "1n"),
+        mysteryAt
+      );
+      timeouts.push(tM);
+
+      stopWaveAfter(mysteryAt + 2200);
+    }
+
+    // Toca uma única nota, sem nenhum contexto harmônico.
+    function tocarNota(nota, dur = "1n") {
+      limparAudio();
+      startWave();
+      synth.triggerAttackRelease(nota, dur);
+      stopWaveAfter(2200);
+    }
+
+    function rodadaNota() {
+      // Identificação de nota pura: toca UMA nota da escala cromática,
+      // sem cadência, sem contexto. Usuário identifica qual nota foi.
+      showListeningUI({ singleCol: false });
+
+      const idx = Math.floor(Math.random() * 12);  // 0..11 → C, C#, D, …, B
+      const midi = 60 + idx;                       // sempre na 4ª oitava (C4..B4)
+      const notaTone = midiToNote(midi);
+      const nomeCorreto = midiToNoteName(midi);
+
+      respostaCorreta = nomeCorreto;
+
+      document.getElementById('perguntaBox').className = 'question';
+      document.getElementById('perguntaBox').innerHTML = `
+        <div class="q-prompt">Qual <em>nota</em> foi tocada?</div>
+      `;
+
+      replayFn = () => tocarNota(notaTone);
+      replayFn();
+
+      gerarOpcoesPool(NOTE_NAMES);  // 12 notas cromáticas no pool
+    }
+
+    function rodadaGrau() {
+      showTimedUI();
+
+      const tons = Object.keys(camposAcordes);
+      const tom = tons[Math.floor(Math.random() * tons.length)];
+      const acordes = camposAcordes[tom];
+
+      const idx = Math.floor(Math.random() * acordes.length);
+      const acorde = acordes[idx];
+      const grau = graus[idx];
+
+      const perguntarAcorde = Math.random() > 0.5;
+      const perguntaBox = document.getElementById('perguntaBox');
+      perguntaBox.className = 'question grid-q';
+
+      if (perguntarAcorde) {
+        perguntaBox.innerHTML = `
+          <div class="q-block"><div class="q-mini">Tom</div><div class="q-value">${tom}</div></div>
+          <div class="q-block"><div class="q-mini">Acorde · qual o grau?</div><div class="q-value accent">${acorde}</div></div>
+        `;
+        respostaCorreta = grau;
+        gerarOpcoesPool(graus);
+      } else {
+        perguntaBox.innerHTML = `
+          <div class="q-block"><div class="q-mini">Tom</div><div class="q-value">${tom}</div></div>
+          <div class="q-block"><div class="q-mini">Grau · qual o acorde?</div><div class="q-value accent">${grau}</div></div>
+        `;
+        respostaCorreta = acorde;
+        gerarOpcoesPool(acordes);
+      }
+
+      replayFn = null;
+      iniciarTimer();
+    }
+
+    function rodadaIntervalo() {
+      showListeningUI({ singleCol: false });
+
+      const nomes = Object.keys(INTERVALOS);
+      const chosen = nomes[Math.floor(Math.random() * nomes.length)];
+      const root = randomRoot();
+      const notes = [midiToNote(root), midiToNote(root + INTERVALOS[chosen])];
+
+      respostaCorreta = chosen;
+
+      document.getElementById('perguntaBox').className = 'question';
+      document.getElementById('perguntaBox').innerHTML = `
+        <div class="q-prompt">Qual o <em>intervalo</em> entre as duas notas?</div>
+      `;
+
+      replayFn = () => tocarMelodia(notes, 950, "2n");
+      replayFn();
+
+      gerarOpcoesPool(nomes);
+    }
+
+    function rodadaQualidade() {
+      showListeningUI({ singleCol: false });
+
+      const tipos = Object.keys(QUALIDADES);
+      const chosen = tipos[Math.floor(Math.random() * tipos.length)];
+      const root = randomRoot();
+      const notes = QUALIDADES[chosen].map(s => midiToNote(root + s));
+
+      respostaCorreta = chosen;
+
+      document.getElementById('perguntaBox').className = 'question';
+      document.getElementById('perguntaBox').innerHTML = `
+        <div class="q-prompt">Qual a <em>qualidade</em> do acorde?</div>
+      `;
+
+      replayFn = () => tocarAcorde(notes);
+      replayFn();
+
+      gerarOpcoesPool(tipos);
+    }
+
+    function rodadaEscala() {
+      showListeningUI({ singleCol: true });
+
+      const nomes = Object.keys(ESCALAS);
+      const chosen = nomes[Math.floor(Math.random() * nomes.length)];
+      const root = randomRoot(57, 62); // start lower so the octave still fits
+      const notes = ESCALAS[chosen].map(s => midiToNote(root + s));
+
+      respostaCorreta = chosen;
+
+      document.getElementById('perguntaBox').className = 'question';
+      document.getElementById('perguntaBox').innerHTML = `
+        <div class="q-prompt">Qual a <em>escala</em> tocada?</div>
+      `;
+
+      replayFn = () => tocarMelodia(notes, 320, "8n");
+      replayFn();
+
+      gerarOpcoesPool(nomes);
+    }
+
+    /* ===== Option-button generators ===== */
+
     function gerarOpcoesAcordes(acordes) {
+      // Special: 4-chord sequence options
       const div = document.getElementById("opcoes");
       div.innerHTML = "";
 
-      const correta = respostaCorreta.join(" - ");
+      const correta = respostaCorreta.join(" — ");
       let op = [correta];
 
       while (op.length < 4) {
@@ -310,7 +1576,7 @@
         for (let i = 0; i < 4; i++) {
           temp.push(acordes[Math.floor(Math.random() * acordes.length)]);
         }
-        let txt = temp.join(" - ");
+        let txt = temp.join(" — ");
         if (!op.includes(txt)) op.push(txt);
       }
 
@@ -318,111 +1584,123 @@
 
       op.forEach(o => {
         let b = document.createElement("button");
+        b.className = 'opt-btn';
         b.innerText = o;
-        b.onclick = () => verificar(o);
+        b.onclick = () => verificar(o, b);
         div.appendChild(b);
       });
     }
 
-    // ✅ FUNÇÃO CORRIGIDA — gera opções de acordes simples (não sequência)
-    function gerarOpcoesAcordesSimples(acordes) {
+    function gerarOpcoesPool(pool) {
+      // Generic: correct answer + 3 distractors from the same pool
       const div = document.getElementById("opcoes");
       div.innerHTML = "";
-
       let op = [respostaCorreta];
 
-      while (op.length < 4) {
-        let ac = acordes[Math.floor(Math.random() * acordes.length)];
-        if (!op.includes(ac)) op.push(ac);
+      const max = Math.min(4, pool.length);
+      let safety = 50;
+      while (op.length < max && safety-- > 0) {
+        const x = pool[Math.floor(Math.random() * pool.length)];
+        if (!op.includes(x)) op.push(x);
       }
 
       op.sort(() => Math.random() - 0.5);
 
       op.forEach(o => {
         let b = document.createElement("button");
+        b.className = 'opt-btn';
         b.innerText = o;
-        b.onclick = () => verificar(o);
+        b.onclick = () => verificar(o, b);
         div.appendChild(b);
       });
     }
 
-    function gerarOpcoesGraus() {
-      const div = document.getElementById("opcoes");
-      div.innerHTML = "";
-      let op = [respostaCorreta];
-
-      while (op.length < 4) {
-        let g = graus[Math.floor(Math.random() * graus.length)];
-        if (!op.includes(g)) op.push(g);
-      }
-
-      op.sort(() => Math.random() - 0.5);
-
-      op.forEach(o => {
-        let b = document.createElement("button");
-        b.innerText = o;
-        b.onclick = () => verificar(o);
-        div.appendChild(b);
-      });
-    }
-
-    function gerarOpcoesNotas(notas) {
-      const div = document.getElementById("opcoes");
-      div.innerHTML = "";
-      let op = [respostaCorreta];
-
-      while (op.length < 4) {
-        let n = notas[Math.floor(Math.random() * notas.length)];
-        if (!op.includes(n)) op.push(n);
-      }
-
-      op.sort(() => Math.random() - 0.5);
-
-      op.forEach(o => {
-        let b = document.createElement("button");
-        b.innerText = o;
-        b.onclick = () => verificar(o);
-        div.appendChild(b);
-      });
-    }
-
-    function verificar(resp) {
+    function verificar(resp, btn) {
       clearInterval(timerInterval);
 
       let correta = Array.isArray(respostaCorreta)
-        ? respostaCorreta.join(" - ")
+        ? respostaCorreta.join(" — ")
         : respostaCorreta;
 
+      const resultadoEl = document.getElementById("resultado");
+      const pips = document.querySelectorAll('#pips .pip');
+
+      // disable all option buttons
+      document.querySelectorAll('#opcoes .opt-btn').forEach(b => {
+        b.disabled = true;
+        if (b.innerText === correta) b.classList.add('was-right');
+      });
+
       if (resp === correta) {
-        document.getElementById("resultado").innerText = "✅ Acertou";
+        resultadoEl.innerHTML = '✓ Mandou bem!';
+        resultadoEl.className = 'result win';
+        if (btn) btn.classList.add('right');
         score += 10; acertos++;
+        if (pips[fase - 1]) {
+          pips[fase - 1].classList.remove('now');
+          pips[fase - 1].classList.add('done');
+        }
       } else {
-        document.getElementById("resultado").innerText = `❌ Errou | Correto: ${correta}`;
+        const passed = resp === null;
+        resultadoEl.innerHTML = passed
+          ? `⏱ Tempo! <span class="correct-pill">${correta}</span>`
+          : `✗ Quase! <span class="correct-pill">${correta}</span>`;
+        resultadoEl.className = 'result lose';
+        if (btn) btn.classList.add('wrong');
         erros++;
+        if (pips[fase - 1]) {
+          pips[fase - 1].classList.remove('now');
+          pips[fase - 1].classList.add('fail');
+        }
       }
 
-      document.getElementById("proxima").style.display = "block";
+      const proxBtn = document.getElementById("proxima");
+      proxBtn.style.display = "flex";
+      // Update next-button label for last phase
+      document.getElementById('nextLabel').innerText =
+        (fase >= TOTAL_FASES) ? 'Ver resultado' : 'Próxima fase';
+
+      // Pulse score
+      const sv = document.getElementById('scoreVal');
+      sv.classList.remove('pulse');
+      void sv.offsetWidth;
+      sv.classList.add('pulse');
+
       atualizarUI();
     }
 
     function proximaFase() {
       fase++;
-
-      if (fase > 5) {
+      if (fase > TOTAL_FASES) {
         mostrarTelaFinal();
         return;
       }
+
+      // mark current pip as "now"
+      const pips = document.querySelectorAll('#pips .pip');
+      if (pips[fase - 1]) pips[fase - 1].classList.add('now');
 
       proximaPergunta();
       atualizarUI();
     }
 
     function mostrarTelaFinal() {
-      document.getElementById("jogo").style.display = "none";
-      document.getElementById("telaFinal").style.display = "flex";
+      document.getElementById("areaJogo").style.display = "none";
+      const final = document.getElementById("telaFinal");
+      final.classList.add('show');
 
-      document.getElementById("finalScore").innerText =
-        `Score: ${score} | Acertos: ${acertos} | Erros: ${erros}`;
+      document.getElementById('finalScoreVal').innerText = score;
+      document.getElementById('finalAcertos').innerText = acertos;
+      document.getElementById('finalErros').innerText = erros;
+
+      // Medal + title based on accuracy
+      const medal = document.getElementById('finalMedal');
+      const title = document.getElementById('finalTitle');
+      const pct = acertos / TOTAL_FASES;
+      if (pct >= 0.8)       { medal.textContent = '★'; medal.style.background = 'var(--yellow)'; title.innerHTML = 'Maestro do <em>set</em>'; }
+      else if (pct >= 0.5)  { medal.textContent = '♬'; medal.style.background = 'var(--jade)';   title.innerHTML = 'Bem <em>tocado</em>'; }
+      else if (pct >= 0.2)  { medal.textContent = '♪'; medal.style.background = 'var(--sky)';    title.innerHTML = 'Mais um <em>take</em>?'; }
+      else                  { medal.textContent = '!'; medal.style.background = 'var(--pink)'; medal.style.color = 'var(--paper)'; title.innerHTML = 'Bora <em>ensaiar</em>'; }
     }
 
     function reiniciar() {
@@ -433,25 +1711,29 @@
 
       limparAudio();
       clearInterval(timerInterval);
+      replayFn = null;
 
-      document.getElementById("telaFinal").style.display = "none";
-      document.getElementById("jogo").style.display = "block";
+      const final = document.getElementById("telaFinal");
+      final.classList.remove('show');
 
       document.getElementById("menuInicial").style.display = "block";
       document.getElementById("areaJogo").style.display = "none";
+      document.getElementById('headerTag').innerText = 'Lado A';
+
+      // Reset medal color/text defaults
+      const medal = document.getElementById('finalMedal');
+      medal.style.color = '';
 
       document.getElementById("perguntaBox").innerHTML = "";
       document.getElementById("opcoes").innerHTML = "";
       document.getElementById("resultado").innerText = "";
-      document.getElementById("timer").innerText = "";
       document.getElementById("proxima").style.display = "none";
 
       atualizarUI();
     }
 
     function atualizarUI() {
-      document.getElementById("fase").innerText = "Fase: " + fase;
-      document.getElementById("score").innerText = "Score: " + score;
+      document.getElementById("scoreVal").innerText = score;
     }
 
     atualizarUI();
